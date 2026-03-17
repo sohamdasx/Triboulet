@@ -23,13 +23,14 @@ async def fetch_news_for_ticker(symbol: str) -> list:
     
     # 2. Extract the top 5 most recent articles
     for item in raw_news[:5]:
-        # yfinance news doesn't always have a snippet, so we use the publisher as context
         headline = item.get("title", "No Title Available")
         publisher = item.get("publisher", "Unknown Publisher")
+        link = item.get("link", "No Link Available") # <-- NEW: Grab the URL
         
         articles.append({
             "headline": headline,
-            "snippet": f"Published by {publisher}."
+            # NEW: Hide the URL inside the snippet text so the AI sees it
+            "snippet": f"Published by {publisher}. Source URL: {link}" 
         })
         
     # 3. Fallback if the stock has no recent news

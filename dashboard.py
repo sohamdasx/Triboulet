@@ -1,6 +1,7 @@
 import streamlit as st
 import asyncio
 import os
+import random
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import yfinance as yf
@@ -19,13 +20,32 @@ st.set_page_config(page_title="BSE Agentic Quant", layout="wide", page_icon="�
 st.title("📈 Autonomous Agentic Quant Desk")
 st.markdown("Initiate the daily scan to automatically discover and analyze breakout BSE stocks.")
 
-# 3. The Market Basket (List of stocks to scan automatically)
-BASKET = ["RELIANCE.BO", "TCS.BO", "HDFCBANK.BO", "INFY.BO", "SBIN.BO", "TATAMOTORS.BO", "ICICIBANK.BO", "ITC.BO"]
+# 3. The Master BSE 500 Pool (Expanded for high liquidity)
+BSE_MASTER_POOL = [
+    "RELIANCE.BO", "TCS.BO", "HDFCBANK.BO", "INFY.BO", "SBIN.BO", "TATAMOTORS.BO", 
+    "ICICIBANK.BO", "ITC.BO", "LARSEN.BO", "BAJFINANCE.BO", "BHARTIARTL.BO", 
+    "KOTAKBANK.BO", "ASIANPAINT.BO", "AXISBANK.BO", "MARUTI.BO", "SUNPHARMA.BO", 
+    "TITAN.BO", "ULTRACEMCO.BO", "WIPRO.BO", "NESTLEIND.BO", "M&M.BO", "POWERGRID.BO", 
+    "NTPC.BO", "TATASTEEL.BO", "HCLTECH.BO", "BAJAJFINSV.BO", "TECHM.BO", "INDUSINDBK.BO",
+    "HINDUNILVR.BO", "ONGC.BO", "GRASIM.BO", "JSWSTEEL.BO", "CIPLA.BO", "ADANIPORTS.BO",
+    "HDFCLIFE.BO", "DRREDDY.BO", "APOLLOHOSP.BO", "BRITANNIA.BO", "DIVISLAB.BO", 
+    "EICHERMOT.BO", "HEROMOTOCO.BO", "HINDALCO.BO", "SBILIFE.BO", "TATACONSUM.BO",
+    "UPL.BO", "BPCL.BO", "COALINDIA.BO", "SHREECEM.BO", "BAJAJ-AUTO.BO", "TRENT.BO",
+    "ZOMATO.BO", "JIOFIN.BO", "HAL.BO", "IRFC.BO", "PFC.BO", "RECLTD.BO", "GAIL.BO",
+    "PNB.BO", "BANKBARODA.BO", "TVSMOTOR.BO", "INDIGO.BO", "DLF.BO", "BOSCHLTD.BO",
+    "CHOLAFIN.BO", "CUMMINSIND.BO", "MRF.BO", "PIDILITIND.BO", "SIEMENS.BO", "SRF.BO"
+]
 
 # 4. The Trigger
 if st.button("🚀 Run Daily Autonomous Scan"):
     st.divider()
-    candidates = [] # This will hold the stocks that pass the math test
+    
+    # Randomly select exactly 15 stocks from the master pool
+    BASKET = random.sample(BSE_MASTER_POOL, 15)
+    
+    st.info(f"🎲 Randomly selected 15 stocks for today's scan: {', '.join([t.replace('.BO', '') for t in BASKET])}")
+    
+    candidates = [] 
     
     # --- THREAD 1: THE QUANTITATIVE SIFTER ---
     st.subheader("⚙️ Phase 1: Market-Wide Quantitative Sifting")
@@ -33,30 +53,26 @@ if st.button("🚀 Run Daily Autonomous Scan"):
     
     for i, ticker in enumerate(BASKET):
         # Update UI Progress
-        my_bar.progress((i + 1) / len(BASKET), text=f"Analyzing math for {ticker}...")
+        my_bar.progress((i + 1) / len(BASKET), text=f"Checking momentum for {ticker} ({i+1}/15)...")
         
         # Run Sifter
         request = TickerRequest(symbol=ticker)
         sift_result = asyncio.run(sift_single_stock(request))
-        
-        # TESTING BYPASS: Force one stock to pass so you can always test the AI
-        # (Remove this `if` block later when you want pure, strict math)
-        if ticker == "TATAMOTORS.BO": 
-             sift_result["is_candidate"] = True
-             if "metrics" not in sift_result: 
-                 sift_result["metrics"] = {"close": 1000, "ema_200": 950, "vol_z_score": 2.5}
         
         # Collect Winners
         if sift_result.get("is_candidate"):
             st.success(f"🔥 {ticker} Passed! Anomalous momentum detected.")
             candidates.append({"symbol": ticker, "metrics": sift_result["metrics"]})
         else:
-            st.write(f"❌ {ticker} rejected (Normal volume or downtrend).")
+            # We don't print every failure to avoid cluttering the screen
+            pass
             
     if not candidates:
-        st.warning("No stocks passed the quantitative filter today. The market is quiet.")
+        st.warning("All 15 stocks failed the quantitative filter today. The market is quiet. Try scanning again!")
         st.stop()
         
+    st.write(f"✅ Sifter complete. {len(candidates)} out of 15 stocks passed to the AI Analyst.")
+    
     # --- THREAD 2: THE NEWS SCAVENGER ---
     st.divider()
     st.subheader("📰 Phase 2: Contextual News Scavenging")

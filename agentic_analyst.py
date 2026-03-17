@@ -12,7 +12,8 @@ class InvestmentDossier(BaseModel):
     confidence_score: float = Field(description="Confidence from 0.0 to 1.0")
     entry_price: float = Field(description="Suggested entry price target")
     exit_price: float = Field(description="Suggested exit price target")
-    citations: List[str] = Field(description="Exact headlines used to make the decision")
+    # NEW: Force the AI to output the URL
+    citations: List[str] = Field(description="Exact headlines AND their Source URLs used to make the decision")
     reasoning: str = Field(description="Short paragraph explaining the thesis")
 
 # 2. Define the Graph State (The "Shared Clipboard")
