@@ -57,8 +57,9 @@ def lead_analyst_agent(state: AgentState):
         temperature=0.1,
         max_tokens=800
     )
-    
+
     structured_llm = llm.with_structured_output(InvestmentDossier)
+
     
     # Create the prompt combining Math (Quant) and Context (News)
     prompt = ChatPromptTemplate.from_messages([
