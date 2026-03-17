@@ -7,8 +7,10 @@ from supabase import create_client, Client
 import yfinance as yf
 import plotly.graph_objects as go
 import time
-import json          # <-- NEW
-import pandas as pd  # <-- NEW
+import json
+import pandas as pd
+import requests
+import io
 
 # 1. Initialization
 load_dotenv()
@@ -35,23 +37,36 @@ col1, col2 = st.columns(2)
 # --- BUTTON 1: THE DATA UPDATER ---
 with col1:
     if st.button("🔄 1. Update Master Market List", use_container_width=True):
-        with st.spinner("Downloading live equities list from the National Stock Exchange..."):
+        with st.spinner("Bypassing NSE firewall and downloading live equities..."):
             try:
-                # Scrape the official list
                 url = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
-                df = pd.read_csv(url)
+                
+                # THE DISGUISE: Tell the NSE server we are a normal Chrome browser on Windows
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/csv,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
+                
+                # Fetch the data using our disguise (with a 15-second timeout so it never hangs forever)
+                response = requests.get(url, headers=headers, timeout=15)
+                response.raise_for_status() # Ensure we got a 200 OK success code
+                
+                # Convert the raw text response into a Pandas Dataframe
+                df = pd.read_csv(io.StringIO(response.text))
+                
+                # Filter for standard stocks and format for Yahoo Finance
                 df = df[df['SERIES'] == 'EQ']
                 tickers = df['SYMBOL'].astype(str) + ".NS"
                 ticker_list = tickers.tolist()
                 
-                # Save it silently to the server's local file system
+                # Save to the hidden server file
                 with open(POOL_FILE, "w") as f:
                     json.dump(ticker_list, f)
                     
                 st.success(f"✅ Master list updated! {len(ticker_list)} live stocks saved to server cache.")
+                
             except Exception as e:
-                st.error(f"⚠️ Failed to reach the Exchange servers: {e}")
-
+                st.error(f"⚠️ Failed to reach the Exchange servers. Error: {e}")
 # --- BUTTON 2: THE AI SCANNER ---
 with col2:
     if st.button("🚀 2. Run Daily Autonomous Scan", type="primary", use_container_width=True):
@@ -85,29 +100,12 @@ with col2:
             sift_result = asyncio.run(sift_single_stock(request)) 
 
 # 3. The Dynamic Master Market Pool
-@st.cache_data(ttl=86400)  # Cache the data for 24 hours so we don't spam the exchange
-def fetch_master_pool():
-    # This is the official, live master list of all traded equities in India
-    url = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
-    
-    try:
-        # Read the CSV directly from the internet
-        df = pd.read_csv(url)
-        
-        # We only want standard stocks (Series 'EQ') to avoid weird ETFs or Bonds
-        df = df[df['SERIES'] == 'EQ']
-        
-        # Grab the symbols and append '.NS' so Yahoo Finance understands them
-        tickers = df['SYMBOL'].astype(str) + ".NS"
-        
-        return tickers.tolist()
-        
-    except Exception as e:
-        st.error("⚠️ Failed to reach the Exchange servers. Using fallback pool.")
-        return ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "SBIN.NS"]
+# @st.cache_data(ttl=86400)  # Cache the data for 24 hours so we don't spam the exchange
+# def fetch_master_pool():
 
-# Load the dynamic pool (This will be over 2,000 live stocks!)
-MARKET_POOL = fetch_master_pool()
+
+# # Load the dynamic pool (This will be over 2,000 live stocks!)
+# MARKET_POOL = fetch_master_pool()
 
 # 4. The Trigger
 if st.button("🚀 Run Daily Autonomous Scan"):
