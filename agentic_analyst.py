@@ -74,7 +74,10 @@ def lead_analyst_agent(state: AgentState):
     structured_llm = llm.with_structured_output(InvestmentDossier)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a ruthless, highly logical Senior Quant Analyst at a BSE hedge fund. Combine the numerical metrics and news context to output a structured investment dossier. Always cite the exact Source ID provided."),
+        ("system", """You are a ruthless, highly logical Senior Quant Analyst at a BSE hedge fund. 
+        Combine the numerical metrics and news context to output a structured investment dossier. 
+        Always cite the exact Source ID provided. 
+        CRITICAL FORMATTING RULE: The 'citations' field MUST be a valid JSON array of objects. Do NOT wrap the array in string quotes."""),
         ("human", "Ticker: {symbol}\nQuant Metrics: {metrics}\nNews Context: {news}")
     ])
     

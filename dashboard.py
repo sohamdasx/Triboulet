@@ -29,74 +29,58 @@ POOL_FILE = "master_pool.json"
 st.divider()
 st.subheader("🎛️ Desk Control Panel")
 
+# Create the columns
 col1, col2 = st.columns(2)
 
-# --- BUTTON 1: THE DATA UPDATER ---
-with col1:
-    if st.button("🔄 1. Update Master Market List", use_container_width=True):
-        with st.spinner("Downloading live equities list from the Exchange..."):
-            try:
-                url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0',
-                    'Accept': 'text/csv'
-                }
-                response = requests.get(url, headers=headers, timeout=10)
-                response.raise_for_status() 
-                
-                df = pd.read_csv(io.StringIO(response.text))
-                
-                # CLEANUP: Strip whitespace from column names just in case NSE added spaces
-                df.columns = df.columns.str.strip()
-                
-                # Filter for standard stocks (EQ)
-                df = df[df['SERIES'].str.strip() == 'EQ']
-                tickers = df['SYMBOL'].astype(str) + ".NS"
-                ticker_list = tickers.tolist()
-                
-                if not ticker_list:
-                    raise ValueError("Downloaded list is empty.")
-                    
-            except Exception as e:
-                st.warning("Exchange firewall blocked the request. Loading Fallback Top Stocks List...")
-                # THE INDESTRUCTIBLE FALLBACK: If the web-scraper gets blocked by the Exchange, 
-                # we silently load this massive list of liquid stocks so your app never breaks.
-                ticker_list = [
-                    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "SBIN.NS", "TATAMOTORS.NS",
-                    "ICICIBANK.NS", "ITC.NS", "LARSEN.NS", "BAJFINANCE.NS", "BHARTIARTL.NS",
-                    "KOTAKBANK.NS", "ASIANPAINT.NS", "AXISBANK.NS", "MARUTI.NS", "SUNPHARMA.NS",
-                    "TITAN.NS", "ULTRACEMCO.NS", "WIPRO.NS", "NESTLEIND.NS", "M&M.NS", "POWERGRID.NS",
-                    "NTPC.NS", "TATASTEEL.NS", "HCLTECH.NS", "BAJAJFINSV.NS", "TECHM.NS", "INDUSINDBK.NS",
-                    "HINDUNILVR.NS", "ONGC.NS", "GRASIM.NS", "JSWSTEEL.NS", "CIPLA.NS", "ADANIPORTS.NS",
-                    "HDFCLIFE.NS", "DRREDDY.NS", "APOLLOHOSP.NS", "BRITANNIA.NS", "DIVISLAB.NS",
-                    "EICHERMOT.NS", "HEROMOTOCO.NS", "HINDALCO.NS", "SBILIFE.NS", "TATACONSUM.NS",
-                    "UPL.NS", "BPCL.NS", "COALINDIA.NS", "SHREECEM.NS", "BAJAJ-AUTO.NS", "TRENT.NS",
-                    "ZOMATO.NS", "JIOFIN.NS", "HAL.NS", "IRFC.NS", "PFC.NS", "RECLTD.NS", "GAIL.NS",
-                    "PNB.NS", "BANKBARODA.NS", "TVSMOTOR.NS", "INDIGO.NS", "DLF.NS", "BOSCHLTD.NS",
-                    "CHOLAFIN.NS", "CUMMINSIND.NS", "MRF.NS", "PIDILITIND.NS", "SIEMENS.NS", "SRF.NS"
-                ]
-                
-            # Save to the hidden server file
-            with open(POOL_FILE, "w") as f:
-                json.dump(ticker_list, f)
-                
-            st.success(f"✅ Master list updated! {len(ticker_list)} live stocks saved to server cache.")
+# Assign the buttons to variables IN the columns
+update_clicked = col1.button("🔄 1. Update Master Market List", use_container_width=True)
+scan_clicked = col2.button("🚀 2. Run Daily Autonomous Scan", type="primary", use_container_width=True)
 
-# --- BUTTON 2: THE AI SCANNER ---
-with col2:
-    if st.button("🚀 2. Run Daily Autonomous Scan", type="primary", use_container_width=True):
-        
-        # Guardrail: Ensure the master list exists before scanning!
-        if not os.path.exists(POOL_FILE):
-            st.error("⚠️ Master list is empty! Please click 'Update Master Market List' first.")
-            st.stop()
+# --- BUTTON 1: THE DATA UPDATER (Runs Full Width) ---
+if update_clicked:
+    with st.spinner("Downloading live equities list from the Exchange..."):
+        try:
+            url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0',
+                'Accept': 'text/csv'
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status() 
             
-        # Load the massive list out of the hidden JSON file
-        with open(POOL_FILE, "r") as f:
-            MARKET_POOL = json.load(f)
+            df = pd.read_csv(io.StringIO(response.text))
+            df.columns = df.columns.str.strip()
+            df = df[df['SERIES'].str.strip() == 'EQ']
+            tickers = df['SYMBOL'].astype(str) + ".NS"
+            ticker_list = tickers.tolist()
             
-        st.divider()
+            if not ticker_list:
+                raise ValueError("Downloaded list is empty.")
+                
+        except Exception as e:
+            st.warning("Exchange firewall blocked the request. Loading Fallback Top Stocks List...")
+            ticker_list = [
+                "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "SBIN.NS", "TATAMOTORS.NS"
+                # ... (Keep your existing fallback list here) ...
+            ]
+            
+        with open(POOL_FILE, "w") as f:
+            json.dump(ticker_list, f)
+            
+        st.success(f"✅ Master list updated! {len(ticker_list)} live stocks saved to server cache.")
+
+# --- BUTTON 2: THE AI SCANNER (Runs Full Width) ---
+        if scan_clicked:
+    # 1. Guardrail: Ensure the master list exists before scanning!
+            if not os.path.exists(POOL_FILE):
+                st.error("⚠️ Master list is empty! Please click 'Update Master Market List' first.")
+                st.stop()
         
+    # 2. Load the massive list out of the hidden JSON file
+            with open(POOL_FILE, "r") as f:
+                MARKET_POOL = json.load(f)
+        
+        st.divider()  
         # Pull our 15 random stocks
         BASKET = random.sample(MARKET_POOL, min(15, len(MARKET_POOL)))
         st.info(f"🎲 Randomly selected 15 stocks from a pool of {len(MARKET_POOL)}: {', '.join([t.replace('.NS', '') for t in BASKET])}")
