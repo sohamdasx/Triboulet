@@ -7,6 +7,7 @@ from supabase import create_client, Client
 import yfinance as yf
 import plotly.graph_objects as go
 import time
+import pandas as pd
 
 # 1. Initialization
 load_dotenv()
@@ -21,28 +22,37 @@ st.set_page_config(page_title="BSE Agentic Quant", layout="wide", page_icon="�
 st.title("📈 Autonomous Agentic Quant Desk")
 st.markdown("Initiate the daily scan to automatically discover and analyze breakout BSE stocks.")
 
-# 3. The Master BSE 500 Pool (Expanded for high liquidity)
-BSE_MASTER_POOL = [
-    "RELIANCE.BO", "TCS.BO", "HDFCBANK.BO", "INFY.BO", "SBIN.BO", "TATAMOTORS.BO", 
-    "ICICIBANK.BO", "ITC.BO", "LARSEN.BO", "BAJFINANCE.BO", "BHARTIARTL.BO", 
-    "KOTAKBANK.BO", "ASIANPAINT.BO", "AXISBANK.BO", "MARUTI.BO", "SUNPHARMA.BO", 
-    "TITAN.BO", "ULTRACEMCO.BO", "WIPRO.BO", "NESTLEIND.BO", "M&M.BO", "POWERGRID.BO", 
-    "NTPC.BO", "TATASTEEL.BO", "HCLTECH.BO", "BAJAJFINSV.BO", "TECHM.BO", "INDUSINDBK.BO",
-    "HINDUNILVR.BO", "ONGC.BO", "GRASIM.BO", "JSWSTEEL.BO", "CIPLA.BO", "ADANIPORTS.BO",
-    "HDFCLIFE.BO", "DRREDDY.BO", "APOLLOHOSP.BO", "BRITANNIA.BO", "DIVISLAB.BO", 
-    "EICHERMOT.BO", "HEROMOTOCO.BO", "HINDALCO.BO", "SBILIFE.BO", "TATACONSUM.BO",
-    "UPL.BO", "BPCL.BO", "COALINDIA.BO", "SHREECEM.BO", "BAJAJ-AUTO.BO", "TRENT.BO",
-    "ZOMATO.BO", "JIOFIN.BO", "HAL.BO", "IRFC.BO", "PFC.BO", "RECLTD.BO", "GAIL.BO",
-    "PNB.BO", "BANKBARODA.BO", "TVSMOTOR.BO", "INDIGO.BO", "DLF.BO", "BOSCHLTD.BO",
-    "CHOLAFIN.BO", "CUMMINSIND.BO", "MRF.BO", "PIDILITIND.BO", "SIEMENS.BO", "SRF.BO, INDHOTEL.BO, MCDOWELL-N.BO, MUTHOOTFIN.BO, BIOCON.BO, LUPIN.BO, ALKEM.BO, ABBOTINDIA.BO, CADILAHC.BO, BOSCHLTD.BO, HAVELLS.BO, VOLTAS.BO, MRF.BO, PIDILITIND.BO"
-]
+# 3. The Dynamic Master Market Pool
+@st.cache_data(ttl=86400)  # Cache the data for 24 hours so we don't spam the exchange
+def fetch_master_pool():
+    # This is the official, live master list of all traded equities in India
+    url = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+    
+    try:
+        # Read the CSV directly from the internet
+        df = pd.read_csv(url)
+        
+        # We only want standard stocks (Series 'EQ') to avoid weird ETFs or Bonds
+        df = df[df['SERIES'] == 'EQ']
+        
+        # Grab the symbols and append '.NS' so Yahoo Finance understands them
+        tickers = df['SYMBOL'].astype(str) + ".NS"
+        
+        return tickers.tolist()
+        
+    except Exception as e:
+        st.error("⚠️ Failed to reach the Exchange servers. Using fallback pool.")
+        return ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "SBIN.NS"]
+
+# Load the dynamic pool (This will be over 2,000 live stocks!)
+MARKET_POOL = fetch_master_pool()
 
 # 4. The Trigger
 if st.button("🚀 Run Daily Autonomous Scan"):
     st.divider()
     
-    # Randomly select exactly 15 stocks from the master pool
-    BASKET = random.sample(BSE_MASTER_POOL, 15)
+    # Randomly select exactly 15 stocks from the 2000+ live market pool
+    BASKET = random.sample(MARKET_POOL, 15)
     
     st.info(f"🎲 Randomly selected 15 stocks for today's scan: {', '.join([t.replace('.BO', '') for t in BASKET])}")
     
