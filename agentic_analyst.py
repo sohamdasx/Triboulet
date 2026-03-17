@@ -32,8 +32,8 @@ class AgentState(TypedDict):
 def researcher_agent(state: AgentState):
     print(f"🕵️ Researcher: Searching news vault for {state['symbol']} (ID: {state['ticker_id']})...")
     
-    # Query the database (with the limit 5 safeguard)
-    resp = supabase.table("news_vault").select("headline, snippet").eq("ticker_id", state["ticker_id"]).order("id", desc=True).limit(5).execute()
+    # Query the database (with just the limit 5 safeguard)
+    resp = supabase.table("news_vault").select("headline, snippet").eq("ticker_id", state["ticker_id"]).limit(5).execute()
     
     news_string = ""
     
@@ -52,20 +52,6 @@ def researcher_agent(state: AgentState):
     safe_news = news_string[:2500]
         
     return {"retrieved_news": [safe_news]}
-    print(f"🕵️ Researcher: Searching news vault for {state['symbol']} (ID: {state['ticker_id']})...")
-    
-    # Query the database, but STRICTLY limit it to the 5 most recent articles!
-    resp = supabase.table("news_vault").select("headline, snippet").eq("ticker_id", state["ticker_id"]).order("id", desc=True).limit(5).execute()
-    
-    news_items = []
-    if resp.data:
-        for row in resp.data:
-            # Combine the headline and the snippet (which now contains the Google News URL)
-            news_items.append(f"Headline: {row['headline']} | Context: {row['snippet']}")
-    else:
-        news_items.append("No recent news context available in the vault.")
-        
-    return {"retrieved_news": news_items}
 
 # 4. Node 2: The Lead Analyst Agent
 def lead_analyst_agent(state: AgentState):
