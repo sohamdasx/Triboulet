@@ -6,3 +6,6 @@ langchain-groq
 langgraph
 python-dotenv
 pydantic
+fastapi
+sentence-transformers
+httpx
