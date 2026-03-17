@@ -112,6 +112,7 @@ if st.button("🚀 Run Daily Autonomous Scan"):
                     "ticker_id": candidate["ticker_id"],
                     "quant_metrics": candidate["metrics"],
                     "retrieved_news": [],
+                    "news_urls": {},  # <--- ADD THIS ONE LINE
                     "final_dossier": {}
                 }
                 
