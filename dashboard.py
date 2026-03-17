@@ -1,8 +1,10 @@
 import streamlit as st
 import asyncio
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 from supabase import create_client, Client
+import plotly.graph_objects as go
+import yfinance as yf
 
 # 1. Load environment variables
 load_dotenv()
