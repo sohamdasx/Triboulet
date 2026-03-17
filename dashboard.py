@@ -132,19 +132,21 @@ if st.button("🚀 Run Daily Autonomous Scan"):
                     "dossier_json": dossier 
                 }
                 
+                # (Inside your main try block)
                 try:
                     supabase.table('recommendations').insert(db_payload).execute()
                 except Exception as e:
                     st.warning(f"Failed to save {ticker} to database: {e}")
                     
+                # THIS LINE MUST BE INDENTED TO MATCH THE 'try' ABOVE IT
                 final_dossiers.append({"symbol": ticker, "dossier": dossier})
                 
-                # --- THE FIX: Take a 3-second breath to respect Groq's free tier limits ---
-                time.sleep(3)
-                
             except Exception as e:
-                # If Groq crashes or rate-limits us, print an error but DO NOT crash the app!
+                # If Groq crashes, print the error but keep the app alive
                 st.error(f"⚠️ AI Analyst failed to process {ticker} due to an API Error: {e}")
+            
+            # Take a 5-second breath OUTSIDE the try/except blocks
+            time.sleep(5)
                 
             final_dossiers.append({"symbol": ticker, "dossier": dossier})
         ticker = candidate["symbol"]
