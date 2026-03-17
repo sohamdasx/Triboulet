@@ -11,13 +11,18 @@ supabase: Client = create_client(os.environ.get("SUPABASE_URL"), os.environ.get(
 
 
 # 1. Define the Structured Output (The final JSON Dossier)
+# 1. Define the Structured Output
+class Citation(BaseModel):
+    headline: str = Field(description="The exact news headline")
+    url: str = Field(description="The exact Source URL provided in the context")
+
 class InvestmentDossier(BaseModel):
     signal: str = Field(description="Strictly 'BUY', 'SELL', or 'HOLD'")
     confidence_score: float = Field(description="Confidence from 0.0 to 1.0")
     entry_price: float = Field(description="Suggested entry price target")
     exit_price: float = Field(description="Suggested exit price target")
-    # NEW: Force the AI to output the URL
-    citations: List[str] = Field(description="Exact headlines AND their Source URLs used to make the decision")
+    # THE FIX: Force the AI to use the nested Citation object
+    citations: List[Citation] = Field(description="List of sources used to make the decision")
     reasoning: str = Field(description="Short paragraph explaining the thesis")
 
 # 2. Define the Graph State (The "Shared Clipboard")

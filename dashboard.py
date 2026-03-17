@@ -168,4 +168,9 @@ if st.button("🚀 Run Daily Autonomous Scan"):
             
             st.markdown("### 📚 Source Citations")
             for cit in dossier.get("citations", []):
-                st.markdown(f"- *{cit}*")
+                # Extract the newly separated headline and URL
+                headline = cit.get("headline", "News Article")
+                url = cit.get("url", "#")
+                
+                # Format as a clean, clickable Markdown hyperlink!
+                st.markdown(f"- [{headline}]({url})")
