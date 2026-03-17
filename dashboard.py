@@ -72,7 +72,7 @@ if st.button("🚀 Run Daily Autonomous Scan"):
         st.stop()
         
     st.write(f"✅ Sifter complete. {len(candidates)} out of 15 stocks passed to the AI Analyst.")
-    
+
     # --- THREAD 2: THE NEWS SCAVENGER ---
     st.divider()
     st.subheader("📰 Phase 2: Contextual News Scavenging")
@@ -105,27 +105,18 @@ if st.button("🚀 Run Daily Autonomous Scan"):
     for candidate in candidates:
         ticker = candidate["symbol"]
         with st.spinner(f"Lead Analyst is reviewing {ticker}..."):
+            
+            # --- NEW: Pass the ticker_id into the AI's state ---
             initial_state = {
                 "symbol": ticker,
+                "ticker_id": candidate["ticker_id"], # <--- ADD THIS LINE
                 "quant_metrics": candidate["metrics"],
                 "retrieved_news": [],
                 "final_dossier": {}
             }
+            
             final_state = app.invoke(initial_state)
             dossier = final_state["final_dossier"]
-            
-            # Save to database
-            db_payload = {
-                "ticker_id": candidate["ticker_id"], 
-                "signal": dossier.get("signal"),
-                "confidence_score": dossier.get("confidence_score"),
-                "entry_price": dossier.get("entry_price"),
-                "exit_price": dossier.get("exit_price"),
-                "dossier_json": dossier 
-            }
-            supabase.table('recommendations').insert(db_payload).execute()
-            final_dossiers.append({"symbol": ticker, "dossier": dossier})
-    
     # --- PHASE 4: THE DASHBOARD DISPLAY ---
     st.divider()
     st.header("🏆 Today's Top Investment Recommendations")

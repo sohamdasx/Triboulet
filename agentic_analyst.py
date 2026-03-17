@@ -1,10 +1,13 @@
+import os
 from typing import TypedDict, List
+from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, END
-# from langchain_openai import ChatOpenAI
-from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
-import os
+from supabase import create_client, Client
+
+# Initialize Supabase inside the agent file
+supabase: Client = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
+
 
 # 1. Define the Structured Output (The final JSON Dossier)
 class InvestmentDossier(BaseModel):
@@ -19,24 +22,27 @@ class InvestmentDossier(BaseModel):
 # 2. Define the Graph State (The "Shared Clipboard")
 class AgentState(TypedDict):
     symbol: str
+    ticker_id: int  # <-- NEW: The agent needs to know which database ID to look up
     quant_metrics: dict
-    retrieved_news: List[dict]
+    retrieved_news: List[str]
     final_dossier: dict
 
 # 3. Node 1: The Researcher Agent
 def researcher_agent(state: AgentState):
-    print(f"🕵️ Researcher: Searching news vault for {state['symbol']}...")
+    print(f"🕵️ Researcher: Searching news vault for {state['symbol']} (ID: {state['ticker_id']})...")
     
-    # In a real app, this would be a Supabase RPC call doing a cosine similarity 
-    # search using pgvector to find news matching "market catalysts and risks".
-    # For demonstration, we simulate the retrieved database rows:
-    mock_retrieved_news = [
-        {"headline": f"{state['symbol']} Q3 earnings beat expectations", "snippet": "Profits up 15% year over year."},
-        {"headline": "Regulatory hurdles cleared", "snippet": "The government has approved the new expansion project."}
-    ]
+    # Query the database for the news we just scraped
+    resp = supabase.table("news_vault").select("headline, snippet").eq("ticker_id", state["ticker_id"]).execute()
     
-    # Update the state clipboard with the findings
-    return {"retrieved_news": mock_retrieved_news}
+    news_items = []
+    if resp.data:
+        for row in resp.data:
+            # Combine the headline and the snippet (which now contains the Google News URL)
+            news_items.append(f"Headline: {row['headline']} | Context: {row['snippet']}")
+    else:
+        news_items.append("No recent news context available in the vault.")
+        
+    return {"retrieved_news": news_items}
 
 # 4. Node 2: The Lead Analyst Agent
 def lead_analyst_agent(state: AgentState):
