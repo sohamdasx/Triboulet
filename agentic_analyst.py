@@ -51,8 +51,12 @@ def lead_analyst_agent(state: AgentState):
     
     # Initialize the LLM and bind our strict JSON schema to it
     # llm = ChatOpenAI(model="gpt-4-turbo", temperature=0.1)
-    llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.1)
-    structured_llm = llm.with_structured_output(InvestmentDossier)
+    # Initialize the Free Meta Llama 3.1 model via Groq!
+    llm = ChatGroq(
+        model="llama-3.1-8b-instant", 
+        temperature=0.1,
+        max_tokens=800  # <--- THE MAGIC FIX: Stops Langchain from reserving 8k tokens!
+    )
     
     # Create the prompt combining Math (Quant) and Context (News)
     prompt = ChatPromptTemplate.from_messages([
