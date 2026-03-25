@@ -23,7 +23,12 @@ st.set_page_config(page_title="BSE Agentic Quant", layout="wide", page_icon="�
 st.title("📈 Autonomous Agentic Quant Desk")
 st.markdown("Initiate the daily scan to automatically discover and analyze breakout Indian stocks.")
 
+# The hidden file where we will store the master list
 POOL_FILE = "master_pool.json"
+
+# --- NEW: Initialize the bookmark to track our sequential position ---
+if 'scan_index' not in st.session_state:
+    st.session_state.scan_index = 0
 
 st.divider()
 st.subheader("🎛️ Desk Control Panel")
@@ -82,8 +87,20 @@ if scan_clicked:
         
     st.divider()
     
-    BASKET = random.sample(MARKET_POOL, min(50, len(MARKET_POOL)))
-    st.info(f"🎲 Randomly selected 50 stocks from a pool of {len(MARKET_POOL)}: {', '.join([t.replace('.NS', '') for t in BASKET])}")
+# --- THE SEQUENTIAL ENGINE ---
+    start_idx = st.session_state.scan_index
+    end_idx = start_idx + 100
+    
+    # Slice the next 100 stocks (and wrap around to the beginning if we hit the end of the 2000+ list)
+    if end_idx > len(MARKET_POOL):
+        BASKET = MARKET_POOL[start_idx:] + MARKET_POOL[:(end_idx - len(MARKET_POOL))]
+    else:
+        BASKET = MARKET_POOL[start_idx:end_idx]
+        
+    # Save the new index so the next click picks up exactly where this one left off!
+    st.session_state.scan_index = end_idx % len(MARKET_POOL)
+    
+    st.info(f"📊 Scanning sequential batch: Stocks {start_idx + 1} to {start_idx + 100} (Total Pool: {len(MARKET_POOL)}).")
     
     candidates = [] 
     
